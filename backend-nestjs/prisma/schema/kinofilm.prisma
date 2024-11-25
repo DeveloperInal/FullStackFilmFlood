@@ -1,0 +1,11 @@
+type Film {
+    film_name String
+    description String
+    releases_data String
+    countries_name String
+}
+
+model KinoTable {
+    id    String @id @default(auto()) @map("_id") @db.ObjectId
+    filmdata Film[]
+}

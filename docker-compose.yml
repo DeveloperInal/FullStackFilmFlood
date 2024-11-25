@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_HOST=172.26.148.182
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_HOST=172.26.148.182
+      - MONGO_INITDB_PORT=27017
+      - MONGO_INITDB_DATABASE=FilmFloodApi
+    volumes:
+      - mongodb_data:/data/db
+    command: mongod --replSet rs0
+
+  fastapi:
+    build:
+      context: ./backend-fastapi/
+      dockerfile: Dockerfile
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - mongodb
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGO_INITDB_HOST=mongodb
+      - MONGO_INITDB_PORT=27017
+      - MONGO_INITDB_DATABASE=FilmFloodApi
+
+  nestjs:
+    build:
+      context: ./backend-nestjs/
+      dockerfile: Dockerfile
+    container_name: nestjs
+    ports:
+      - "172.26.148.182:4200:4200"  
+    depends_on:
+      - redis
+      - mongodb
+      - fastapi
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=mongodb://mongodb:27017/FilmFloodApi
+    command: yarn prisma db push && yarn prisma generate
+
+  nextjs:
+    build:
+      context: ./frontend-nextjs/
+      dockerfile: Dockerfile
+    container_name: nextjs
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - mongodb
+      - fastapi
+      - nestjs
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGO_INITDB_HOST=mongodb
+      - MONGO_INITDB_PORT=27017
+      - MONGO_INITDB_DATABASE=FilmFloodApi
+      - FASTAPI_URL=http://172.26.148.182:8000
+      - NESTJS_URL=http://172.26.148.182:4200 
+
+volumes:
+  mongodb_data:
