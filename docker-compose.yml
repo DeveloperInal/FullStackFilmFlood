@@ -1,0 +1,75 @@
+version: '3.8'
+
+networks:
+  example-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 11.10.228.0/24
+
+volumes:
+  admin-data:
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "172.26.148.182:6379:6379"
+    environment:
+      - REDIS_HOST=172.26.148.182
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+    networks:
+      example-network:
+        ipv4_address: 11.10.228.2
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "172.26.148.182:5432:5432"
+    environment:
+      - DATABASE_URL=postgresql://postgres:inal_2411@172.26.148.182:5432/filmflood
+      - POSTGRES_PASSWORD=inal_2411
+    volumes:
+      - admin-data:/var/lib/postgresql/data
+    networks:
+      example-network:
+        ipv4_address: 11.10.228.3
+
+  fastapi:
+    build:
+      context: ./backend-fastapi/
+      dockerfile: Dockerfile
+    container_name: fastapi
+    ports:
+      - "172.26.148.182:8000:8000"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      example-network:
+        ipv4_address: 11.10.228.4
+
+  nestjs:
+    build:
+      context: ./backend-nestjs/
+      dockerfile: Dockerfile
+    container_name: nestjs   
+    ports:
+      - "172.26.148.182:4200:4200"
+    depends_on:
+      - redis
+      - postgres
+      - fastapi
+    environment:
+      - DATABASE_URL=postgresql://postgres:inal_2411@172.26.148.182:5432/filmflood
+      - AWS_ACCESS_KEY=7ebb4591a88b443da347c1ec82a98abe
+      - AWS_SECRET_ACCESS_KEY=fd80602fc4364615b8f923242be2b803
+      - AWS_S3_REGION=ru-1
+      - AWS_ENDPOINT=https://s3.ru-1.storage.selcloud.ru  
+    networks:
+      example-network:
+        ipv4_address: 11.10.228.5    

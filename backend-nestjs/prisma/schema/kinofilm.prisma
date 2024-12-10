@@ -1,0 +1,18 @@
+model KinoTable {
+  id                    String   @id @default(cuid()) 
+  alternative_film_name String   @unique
+  description           String   @unique
+  film_name             String   @unique
+  actors                Actor[]
+}
+
+model Actor {
+  id         String   @id @default(cuid())
+  name       String
+  alternative_name String
+  role       String
+  was_born   String
+  height     Int
+  kinoTable  KinoTable @relation(fields: [kinoTableId], references: [id])
+  kinoTableId String
+}
